@@ -1,0 +1,27 @@
+/* Custom badge styling — used inline in briefs via <span class="badge ..."> */
+.badge {
+  display: inline-block;
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  margin: 0 0.2em;
+}
+.badge-info     { background: #ede4f7; color: #7a3e9d; }
+.badge-decided  { background: #e3f6da; color: #0f7c10; }
+.badge-open     { background: #fffbd6; color: #9c8526; }
+.badge-deferred { background: #eeebf2; color: #955dbd; }
+.badge-skipped  { background: #eaeef2; color: #6e7781; }
+.badge-danger   { background: #ffeaea; color: #aa3731; }
+
+/* Issue identifier (monospace inline label) */
+.ident {
+  display: inline-block;
+  font-family: var(--md-code-font);
+  font-size: 0.85em;
+  color: var(--md-default-fg-color--light);
+  margin-right: 0.4em;
+}
