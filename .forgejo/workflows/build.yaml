@@ -17,7 +17,7 @@ jobs:
     runs-on: stackdrift
     uses: stackdrift-images/ci-templates/.forgejo/workflows/docker-build.yml@main
     with:
-      image_name: codeberg.org/stackdrift/agent-working-knowledge
+      image_name: codeberg.org/stackdrift-images/agent-working-knowledge
       upstream_image_search: squidfunk/mkdocs-material
       upstream_name_short: mkdocs
     secrets:
