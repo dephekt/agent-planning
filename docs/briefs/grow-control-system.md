@@ -23,7 +23,7 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
 ## Status snapshot
 
 !!! note ""
-    **Decisions pinned:** 18  ·  **Open forks:** 6  ·  **Deferred / out of scope:** 5
+    **Decisions pinned:** 19  ·  **Open forks:** 5  ·  **Deferred / out of scope:** 5
     ·  **Phases sketched:** 7
 
     **Status:** architecture shape agreed; not yet planned to tasks. No code
@@ -51,8 +51,8 @@ dependency.
 
 The end state: a "more industrial control system" — collapse layers down to the
 ESPHome / ESP-IDF edge, an MQTT spine, a small purpose-built supervisory layer,
-and a touch-friendly PWA (phone + M5Stack Tab5) served behind the existing
-Pangolin/Keycloak SSO at `grow.dephekt.net`.
+and a touch-friendly PWA (phone + M5Stack Tab5) at `grow.dephekt.net` —
+Pangolin/Newt for ingress, the app itself authenticating users via Keycloak OIDC.
 
 ## 2. Organizing principle — autonomous site islands
 
@@ -70,7 +70,7 @@ Two consequences that shape everything:
 
 ```mermaid
 flowchart TB
-  T0["Tier 0 — normal<br/>remote PWA @ grow.dephekt.net (multi-tenant, SSO)"]
+  T0["Tier 0 — normal<br/>remote PWA @ grow.dephekt.net (multi-tenant · Keycloak OIDC)"]
   T1["Tier 1 — WAN / cloud down<br/>M5 Tab5 → local grow-app → local broker → controllers"]
   T2["Tier 2 — site hub / broker down<br/>each controller's own ESPHome web UI (direct LAN)"]
   LOOP["Always: control loops run ON the controllers<br/>(safe defaults baked in — never needed the broker)"]
@@ -107,7 +107,7 @@ flowchart TB
     APP["grow-app · central / multi-tenant<br/>grow.dephekt.net"]
     TS[("InfluxDB<br/>all-site history")]
     FLEET["Fleet mgmt<br/>ESPHome configs in git<br/>OTA → all sites (Tailscale)"]
-    AUTH["Keycloak + Pangolin/Newt<br/>SSO + remote access"]
+    AUTH["Keycloak OIDC (grow-control client)<br/>Pangolin/Newt = ingress only"]
     DE --- CB
     CB <-->|MQTT| APP
     CB --> TS
@@ -139,8 +139,8 @@ flowchart TB
   Mosquitto + `grow-app` (site mode) + `grow-rules`. Daniel's media-server
   doubles as his site hub.
 - **Supervisory (central):** `grow-app` (central/multi-tenant), InfluxDB
-  (history/analytics), fleet management, Keycloak/Pangolin.
-- **Presentation:** the PWA (`grow.dephekt.net`, SSO) for remote; the Tab5
+  (history/analytics), fleet management, Keycloak (OIDC) + Pangolin (ingress).
+- **Presentation:** the PWA (`grow.dephekt.net`, Keycloak OIDC) for remote; the Tab5
   kiosking the *local* `grow-app` for Tier-1 on-site; controller web UIs for
   Tier-2.
 
@@ -148,8 +148,8 @@ flowchart TB
 
 - **Site mode** — local broker, single site, LAN-only, on the site hub. The
   Tab5 + on-LAN phones use this. Survives WAN loss.
-- **Central mode** — aggregated broker, multi-tenant, behind Pangolin SSO, at
-  `grow.dephekt.net`. For remote access.
+- **Central mode** — aggregated broker, multi-tenant, at `grow.dephekt.net`
+  (Pangolin ingress; app authenticates via Keycloak OIDC). For remote access.
 
 No second native UI for the Tab5; it is "just a screen" for the local instance.
 
@@ -170,13 +170,20 @@ No second native UI for the Tab5; it is "just a screen" for the local instance.
 
 ## 6. Multi-tenancy & access (two planes)
 
-- **Human plane = Pangolin + Keycloak.** `grow.dephekt.net` is a compose service
-  exposed via `pangolin.proxy-resources.*` labels + `auth.sso-enabled`; Greg
-  already has a Keycloak login. Add him to a group (e.g. `grow-greg`); the
-  central `grow-app` reads the Pangolin-forwarded identity
-  (`Remote-User`/`Remote-Email` + group) and **scopes him to `greg-home` only**;
-  Daniel is admin (all sites). Pangolin gates *entry*; the app enforces *which
-  site* you see.
+- **Human plane = Keycloak OIDC (confidential BFF client).** `grow-app` is its
+  own Keycloak client (`grow-control`, `home` realm) — a **confidential
+  BFF**: the backend does the auth-code exchange and holds tokens server-side;
+  the browser gets an HttpOnly cookie session. Pangolin/Newt provides ingress +
+  TLS only (`auth.sso-enabled` is dropped; the app must reject anonymous
+  requests itself). Two claim axes: **scope** = Keycloak groups `/grow/<site>`
+  surfaced as a `sites` claim (group-membership mapper); **capability** =
+  client roles `admin`/`operator`/`viewer` in
+  `resource_access.grow-control.roles`. Greg = group `/grow/greg-home` + a
+  role (open: `viewer` vs `operator`); Daniel = `admin` role = all sites. The
+  app enforces *which site* and *what you can do* from the validated token —
+  not from forwarded headers. `grow-control` appears in users' Keycloak
+  Account Console Applications list ("Always display in console", home URL
+  `https://grow.dephekt.net`) — a launcher, not itself an access boundary.
 - **Machine plane = Tailscale.** Greg's site-local Mosquitto **bridges**
   `grow/greg-home/#` up to the central broker (telemetry up, setpoints down)
   over Tailscale — encrypted, NAT-traversing, no port-forwarding. If the link
@@ -184,6 +191,61 @@ No second native UI for the Tab5; it is "just a screen" for the local instance.
 - **Defense in depth = broker ACLs.** Greg's bridge credential can only touch
   `grow/greg-home/#`, so a tenant-isolation bug in the app can't leak
   cross-site.
+
+The access decision, end to end:
+
+```mermaid
+flowchart TB
+  U["User · browser<br/>Daniel or Greg"]
+  ING["Pangolin / Newt<br/>ingress + TLS only · no auth gate"]
+
+  subgraph APP["grow-app · confidential BFF"]
+    direction TB
+    BE["Backend (BFF)<br/>OIDC auth-code · validates token<br/>HttpOnly cookie session · rejects anonymous"]
+    AZ{"Authorize from claims<br/>scope = sites · capability = role"}
+    BE --> AZ
+  end
+
+  subgraph KC["Keycloak · home realm · client grow-control"]
+    direction TB
+    GRP["Groups /grow/&lt;site&gt;<br/>→ sites claim"]
+    ROL["Client roles admin · operator · viewer<br/>→ resource_access.grow-control.roles"]
+  end
+
+  TOK["Token · aud grow-control<br/>sites[] + roles[]"]
+  GRP --> TOK
+  ROL --> TOK
+
+  MQTT["Mediated MQTT<br/>only grow/&lt;permitted-site&gt;/# · read vs write by role"]
+  ACL["Mosquitto ACLs · independent backstop<br/>bridge cred scoped to its own site"]
+
+  U --> ING --> BE
+  BE -.->|"redirect to login"| KC
+  TOK --> BE
+  AZ --> MQTT
+  MQTT -.->|"defense in depth"| ACL
+
+  ADMIN["Daniel = admin<br/>all sites · write"]
+  GREG["Greg = /grow/greg-home + viewer|operator<br/>greg-home only · observe|write"]
+  AZ -.-> ADMIN
+  AZ -.-> GREG
+
+  classDef u fill:#ECEFF1,stroke:#455A64,color:#111;
+  classDef ing fill:#fff3e0,stroke:#e65100,color:#111;
+  classDef app fill:#e3f2fd,stroke:#1565c0,color:#111;
+  classDef kc fill:#f3e5f5,stroke:#6a1b9a,color:#111;
+  classDef tok fill:#fffde7,stroke:#f9a825,color:#111;
+  classDef mq fill:#e8f5e9,stroke:#2e7d32,color:#111;
+  classDef back fill:#fdecea,stroke:#b71c1c,color:#111;
+  class U u;
+  class ING ing;
+  class BE,AZ app;
+  class GRP,ROL kc;
+  class TOK tok;
+  class MQTT mq;
+  class ACL back;
+  class ADMIN,GREG u;
+```
 
 ## 7. Fleet & firmware (GitOps for ESPHome)
 
@@ -222,23 +284,23 @@ No second native UI for the Tab5; it is "just a screen" for the local instance.
 8.  <span class="badge badge-decided">decided</span> **One** `grow-app` codebase, two deploy modes (site/local + central/multi-tenant).
 9.  <span class="badge badge-decided">decided</span> Tab5 = Tier-1 local HMI; it kiosks the **local** grow-app instance. No second native UI.
 10. <span class="badge badge-decided">decided</span> Per-site hub (mini-PC) runs local Mosquitto + grow-app(site) + grow-rules; Daniel's media-server doubles as his hub.
-11. <span class="badge badge-decided">decided</span> Cross-site link = Mosquitto bridge over **Tailscale** (machine plane); Pangolin = human remote plane.
-12. <span class="badge badge-decided">decided</span> Tenant = site/owner; namespace `grow/<site>/…`; Keycloak group → app scope; Mosquitto ACLs for isolation.
+11. <span class="badge badge-decided">decided</span> Cross-site link = Mosquitto bridge over **Tailscale** (machine plane); Pangolin/Newt = human remote **ingress** (TLS + tunnel); auth is the app's own Keycloak OIDC, not a proxy gate.
+12. <span class="badge badge-decided">decided</span> Tenant = site/owner; namespace `grow/<site>/…`; Keycloak **groups** = site scope (`sites` claim), **client roles** (`admin`/`operator`/`viewer`) = capability; Mosquitto ACLs for isolation.
 13. <span class="badge badge-decided">decided</span> `grow-rules` (crop steering / irrigation) runs **per-site on the hub** for autonomy; configured/observed centrally.
 14. <span class="badge badge-decided">decided</span> Fleet = GitOps ESPHome packages + per-device substitutions; per-site dashboard over Tailscale; secrets per-site, not in git.
 15. <span class="badge badge-decided">decided</span> "Environment" is logical + nestable (room → tents); device→environment mapping is **soft** (app config); firmware publishes by stable device id.
 16. <span class="badge badge-decided">decided</span> Integrate AC Infinity now via a lifted-client MQTT bridge — <span class="badge badge-danger">caveat</span> it's cloud-only + poll-only (the soft spot); flag eventual replacement with ESP-driven local control.
 17. <span class="badge badge-decided">decided</span> Rewrite Pulse as a standalone MQTT bridge (drop AppDaemon/HA).
 18. <span class="badge badge-decided">decided</span> Time-series = InfluxDB (central) for history/charts; "current state" from retained MQTT (so TS can be deferred).
+19. <span class="badge badge-decided">decided</span> Human auth = grow-app is a confidential **BFF** Keycloak OIDC client (`grow-control`, `home` realm); Pangolin drops `auth.sso-enabled` and serves ingress only; the app appears in users' Keycloak Applications list and enforces access from token claims.
 
 ## 10. Open threads / forks
 
 1.  <span class="badge badge-open">open</span> **Site-hub hardware** — Pi 5 vs N100 mini-PC (N100 can also host an edge Influx buffer; Pi is cheaper/lower-power).
-2.  <span class="badge badge-open">open</span> **Remote write vs read-only** — does the cloud PWA write setpoints into a *remote* site, or observe-only when remote? (Affects what the bridge carries down.)
+2.  <span class="badge badge-open">open</span> **Remote write vs read-only** — does the cloud PWA write setpoints into a *remote* site, or observe-only when remote? (Affects what the bridge carries down.) — maps to the `operator` (write) vs `viewer` (observe) role for a remote tenant.
 3.  <span class="badge badge-open">open</span> **grow-app framework** — React/Next vs Svelte; one service, two run-modes; backend just needs an MQTT client + SSE/WS.
-4.  <span class="badge badge-open">open</span> **Keycloak modeling** — group-per-tenant vs a `sites` user-attribute (group-per-tenant is simplest).
-5.  <span class="badge badge-open">open</span> **Central-broker resilience** — it lives on media-server; confirm a media-server reboot only affects aggregation/remote, never a site's local control (it shouldn't, by design — worth an explicit test).
-6.  <span class="badge badge-open">open</span> **AC Infinity takeover depth** — front the cloud as-is vs progressively replace its fan/relay role with local ESP control (ties to decision 16).
+4.  <span class="badge badge-open">open</span> **Central-broker resilience** — it lives on media-server; confirm a media-server reboot only affects aggregation/remote, never a site's local control (it shouldn't, by design — worth an explicit test).
+5.  <span class="badge badge-open">open</span> **AC Infinity takeover depth** — front the cloud as-is vs progressively replace its fan/relay role with local ESP control (ties to decision 16).
 
 ## 11. Out of scope (for now)
 
@@ -257,12 +319,13 @@ No second native UI for the Tab5; it is "just a screen" for the local instance.
   minimal responsive PWA; run on media-server (Daniel's site = central). Tab5
   kiosks it. Prove local monitoring + control.
 - **Phase 2 — central / multi-tenant + remote.** Central mode + `grow.dephekt.net`
-  behind Pangolin SSO; the environment data model (room → tents; soft
-  device→env mapping).
+  behind Pangolin ingress with Keycloak OIDC (`grow-control` client; groups +
+  roles); the environment data model (room → tents; soft device→env mapping).
 - **Phase 3 — bridges.** AC Infinity (lift client) + Pulse (rewrite), both
   emitting the ESPHome MQTT shape + discovery.
 - **Phase 4 — Greg's site.** Site hub (local Mosquitto + grow-app + bridge over
-  Tailscale), Keycloak seat + tenant scoping, mirrored hardware shipped/flashed.
+  Tailscale), Keycloak seat (group `/grow/greg-home` + role) + tenant scoping,
+  mirrored hardware shipped/flashed.
 - **Phase 5 — fleet + history.** GitOps firmware (packages + per-site dashboard);
   InfluxDB history/charts.
 - **Phase 6 — grow-rules.** Crop steering / irrigation per-site on the hub.
@@ -283,9 +346,12 @@ No second native UI for the Tab5; it is "just a screen" for the local instance.
   `update_device_controls()`/`update_device_settings()`; modes off/on/auto/timer/
   cycle/schedule/vpd. Liftable into a bridge.
 - **Docker / edge:** `~/docker` — `core` stack runs Newt + Keycloak; resources
-  exposed via `pangolin.proxy-resources.*` labels (+ `auth.sso-enabled`,
-  `auth.sso-roles`, `auth.auto-login-idp`) on the external `proxy` network;
-  context `media-server`. **No MQTT broker exists yet** — add one. `grow.dephekt.net`
-  = a compose service + those labels.
-- **Planes:** Tailscale (machine/MQTT bridge + fleet OTA), Pangolin/Newt +
-  Keycloak (human remote + SSO), media-server (central host).
+  exposed via `pangolin.proxy-resources.*` labels on the external `proxy`
+  network; context `media-server`. **No MQTT broker exists yet** — add one.
+  `grow.dephekt.net` uses the Pangolin routing labels **without**
+  `auth.sso-enabled` (ingress only) — auth is handled in-app via a Keycloak
+  `grow-control` confidential client (redirect URIs under
+  `https://grow.dephekt.net/`, group-membership + client-role mappers,
+  "Always display in console").
+- **Planes:** Tailscale (machine/MQTT bridge + fleet OTA), Pangolin/Newt
+  (human remote ingress) + Keycloak (OIDC auth), media-server (central host).
