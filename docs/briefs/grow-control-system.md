@@ -23,12 +23,14 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
 ## Status snapshot
 
 !!! note ""
-    **Decisions pinned:** 19  ·  **Open forks:** 5  ·  **Deferred / out of scope:** 5
+    **Decisions pinned:** 24  ·  **Open forks:** 4  ·  **Deferred / out of scope:** 5
     ·  **Phases sketched:** 7
 
-    **Status:** architecture shape agreed; not yet planned to tasks. No code
-    written. Next concrete step is Phase 0 (stand up the broker + prove ESPHome
-    MQTT telemetry from the existing AtomS3U bench rig).
+    **Status:** architecture shape agreed; symmetric N+1 sites + a self-hostable
+    central console pinned; client/auth strategy affirmed (confidential BFF +
+    server-capable framework, configurable IdP). Not yet planned to tasks. No
+    code written. Next concrete step is Phase 0 (stand up Daniel's site broker +
+    prove ESPHome MQTT telemetry from the AtomS3U bench rig).
 
 ------------------------------------------------------------------------
 
@@ -53,6 +55,17 @@ The end state: a "more industrial control system" — collapse layers down to th
 ESPHome / ESP-IDF edge, an MQTT spine, a small purpose-built supervisory layer,
 and a touch-friendly PWA (phone + M5Stack Tab5) at `grow.dephekt.net` —
 Pangolin/Newt for ingress, the app itself authenticating users via Keycloak OIDC.
+
+!!! note "Positive framing — an open, self-hostable Pulse"
+    The model to beat is **Pulse Grow**: hubs + ESP-based sensors + a slick app,
+    but **cloud-only** — network down means no local management and data gaps,
+    purely to enforce vendor lock-in (their devices *could* speak MQTT to your
+    own broker; they won't, because lock-in is the business). This system is the
+    open inversion: sensors on open controllers that do C2 through a **local**
+    broker and keep working offline, with an **opt-in** uplink to a rich central
+    console. The console is **self-hostable** — anyone can clone the repos, run
+    their own on a VPS, and point their site at it (or at nobody). Anti-lock-in
+    is the thesis, not a feature.
 
 ## 2. Organizing principle — autonomous site islands
 
@@ -84,47 +97,52 @@ flowchart TB
 
 ## 3. Topology
 
-Per-site islands bridged to a central hub. For Daniel, the central hub and his
-site island coincide (his media-server is on his home LAN); Greg's site is a
-remote island with its own small hub bridged in.
+**Symmetric: N+1 autonomous site islands + one central console *role*.** Every
+site is the same shape — edge controllers + a local broker + grow-app (site
+mode) + grow-rules — and bridges, *if it opts in*, up to a central console over
+a secure transport. No site is special. The "central console" (aggregator
+broker + grow-app central + history + IdP) is a **role anyone can run**, not a
+fixed dependency: Daniel runs one for himself + Greg; a stranger can self-host
+their own; a site can run with no console at all.
+
+Daniel's site stack and the console **co-locate on media-server today** (as
+separate containers, bridged over loopback); lifting his site stack to
+dedicated hardware (the repurposed HA Pi 4) later is a pure deploy-target change
+over a remote Docker context — at which point his site looks exactly like
+Greg's. The collapse is a *deployment detail*, never the architecture.
 
 ```mermaid
 flowchart TB
-  subgraph GREG["GREG'S SITE — autonomous (no WAN needed)"]
+  subgraph SITE["EACH SITE — autonomous island (site #1 = Daniel · #2 = Greg · … N+1)"]
     direction TB
-    GE["Edge controllers (ESPHome)<br/>local loops + own web UIs"]
-    GH["Site hub (mini-PC)<br/>Mosquitto · grow-app · grow-rules"]
-    GT["M5 Tab5<br/>kiosks local app · Tier-1 fallback"]
-    GE -->|telemetry| GH
-    GH -->|setpoints| GE
-    GT --- GH
+    E["Edge controllers (ESPHome)<br/>local loops + own web UIs (Tier-2)"]
+    SB(["Site broker (Mosquitto)<br/>the local bus"])
+    SA["grow-app · site mode + grow-rules<br/>Tier-1 LAN HMI (Tab5 kiosks it)"]
+    E -->|telemetry| SB
+    SB -->|setpoints| E
+    SB --- SA
   end
 
-  subgraph DAN["DANIEL'S HOME — local island + central hub"]
+  subgraph CONSOLE["CENTRAL CONSOLE — a role anyone can run (self-hostable)"]
     direction TB
-    DE["Edge controllers + Tab5<br/>same kit, on LAN"]
-    CB(["Central Mosquitto<br/>aggregates all sites"])
-    APP["grow-app · central / multi-tenant<br/>grow.dephekt.net"]
-    TS[("InfluxDB<br/>all-site history")]
-    FLEET["Fleet mgmt<br/>ESPHome configs in git<br/>OTA → all sites (Tailscale)"]
-    AUTH["Keycloak OIDC (grow-control client)<br/>Pangolin/Newt = ingress only"]
-    DE --- CB
-    CB <-->|MQTT| APP
+    CB(["Central broker<br/>aggregates opted-in sites"])
+    CA["grow-app · central / multi-tenant<br/>grow.dephekt.net (Tier-0 PWA)"]
+    TS[("InfluxDB · history")]
+    IDP["Configurable IdP (OIDC)<br/>Daniel's = Keycloak · ingress = Pangolin/Newt"]
+    CB <-->|MQTT| CA
     CB --> TS
-    APP --- AUTH
+    CA --- IDP
   end
 
-  GH <-->|"MQTT bridge · Tailscale"| CB
-
-  DPHONE["Daniel — admin (all sites)"] --> AUTH
-  GPHONE["Greg — tenant: greg-home only"] --> AUTH
+  SB <==>|"bridge · secure transport<br/>Tailnet now → app-managed WireGuard later"| CB
+  U["Users · browser / PWA<br/>scope + capability from token claims"] --> IDP
 
   classDef site fill:#e8f5e9,stroke:#2e7d32,color:#111;
   classDef central fill:#e3f2fd,stroke:#1565c0,color:#111;
-  classDef remote fill:#f3e5f5,stroke:#6a1b9a,color:#111;
-  class GE,GH,GT,DE site;
-  class CB,APP,TS,FLEET,AUTH central;
-  class DPHONE,GPHONE remote;
+  classDef u fill:#ECEFF1,stroke:#455A64,color:#111;
+  class E,SB,SA site;
+  class CB,CA,TS,IDP central;
+  class U u;
 ```
 
 ## 4. Layers & components
@@ -169,6 +187,15 @@ No second native UI for the Tab5; it is "just a screen" for the local instance.
     - **Pulse Labs** — the AppDaemon app rewritten as a plain MQTT publisher.
 
 ## 6. Multi-tenancy & access (two planes)
+
+!!! note ""
+    Auth governs the **remote** path only. Local on-LAN access to each site is
+    **IdP-free** (decision 20): the Tab5 kiosk and on-LAN phones reach the
+    site-mode app + local broker with no Keycloak dependency, so a site keeps
+    running WAN-down. The two planes below govern remote and inter-site access.
+    The central app authenticates against a **configurable** OIDC provider
+    (decision 23) — Keycloak is *Daniel's* instance's choice, not a hardcoded
+    dependency; a self-hoster points at their own.
 
 - **Human plane = Keycloak OIDC (confidential BFF client).** `grow-app` is its
   own Keycloak client (`grow-control`, `home` realm) — a **confidential
@@ -293,13 +320,18 @@ flowchart TB
 17. <span class="badge badge-decided">decided</span> Rewrite Pulse as a standalone MQTT bridge (drop AppDaemon/HA).
 18. <span class="badge badge-decided">decided</span> Time-series = InfluxDB (central) for history/charts; "current state" from retained MQTT (so TS can be deferred).
 19. <span class="badge badge-decided">decided</span> Human auth = grow-app is a confidential **BFF** Keycloak OIDC client (`grow-control`, `home` realm); Pangolin drops `auth.sso-enabled` and serves ingress only; the app appears in users' Keycloak Applications list and enforces access from token claims.
+20. <span class="badge badge-decided">decided</span> **Local site access is IdP-free; Keycloak gates only the remote inbound path *into* a site.** Remote access = the central `grow.dephekt.net` BFF, which reaches each site via the aggregating broker + Tailscale bridge. On-LAN access to a site — Tab5 kiosk + on-LAN phones → site-mode `grow-app` → local broker — has no IdP dependency (physical/LAN access is the trust boundary). Required for Tier-1 autonomy: a WAN outage must never lock a site out of its own controls, and a remote site (Greg) cannot depend on the central Keycloak to run locally. Sharpens decisions 5, 11, 19.
+21. <span class="badge badge-decided">decided</span> `grow-app` is a **server-capable framework** (the confidential BFF backend), **not** a static SPA + separate API. The backend is already stateful (persistent MQTT client, retained-state cache, SSE/WS fan-out), so tokens live server-side and the browser holds only an HttpOnly session cookie. This also makes the site-mode/central-mode auth difference a single server-side toggle (decision 20). Which specific framework (Next vs SvelteKit) remains open — see fork 3.
+22. <span class="badge badge-decided">decided</span> **No site is special — symmetric N+1.** Every site (Daniel's included) is the same unit: edge + local broker + grow-app(site) + grow-rules, optionally bridging up to a central console. The console is co-located on media-server *today* (separate containers, loopback bridge) but is a distinct **role**, liftable — Daniel's site stack moves to dedicated HW (the repurposed HA Pi 4) via a remote Docker context, making his site identical to Greg's and isolating his grow from media-server maintenance. Resolves the collapsed-vs-symmetric topology question and fork 4.
+23. <span class="badge badge-decided">decided</span> **The central console is a self-hostable role — federation is a pinned goal.** OSS repos; anyone can run their own console on a VPS and point a site at it (or at no console). Forces: the central app authenticates against a **configurable** OIDC provider (not a hardcoded Keycloak), the site↔console link is generic (any endpoint), and the shared units carry no dephekt-specific assumptions. Anti-lock-in is the thesis — the open inversion of Pulse Grow.
+24. <span class="badge badge-decided">decided</span> **Config-as-source-of-truth; the UI is a generator over it.** Central-management settings (remote broker endpoint + creds, IdP info, site identity) are a declarative config (YAML or similar) that the app consumes. A "Remote Management" area in grow-app gives regular users a rich UI to enter them; power users / automated deploys hand-author or supply the config file directly. Both paths converge on the same generated artifact — the UI never becomes a second source of truth.
 
 ## 10. Open threads / forks
 
-1.  <span class="badge badge-open">open</span> **Site-hub hardware** — Pi 5 vs N100 mini-PC (N100 can also host an edge Influx buffer; Pi is cheaper/lower-power).
+1.  <span class="badge badge-open">open</span> **Site-hub hardware** — Pi 5 vs N100 mini-PC (N100 can also host an edge Influx buffer; Pi is cheaper/lower-power). Applies to Daniel too now (decision 22): the repurposed HA **Pi 4** is the leading candidate for his site hub, which also retires HA on that box.
 2.  <span class="badge badge-open">open</span> **Remote write vs read-only** — does the cloud PWA write setpoints into a *remote* site, or observe-only when remote? (Affects what the bridge carries down.) — maps to the `operator` (write) vs `viewer` (observe) role for a remote tenant.
-3.  <span class="badge badge-open">open</span> **grow-app framework** — React/Next vs Svelte; one service, two run-modes; backend just needs an MQTT client + SSE/WS.
-4.  <span class="badge badge-open">open</span> **Central-broker resilience** — it lives on media-server; confirm a media-server reboot only affects aggregation/remote, never a site's local control (it shouldn't, by design — worth an explicit test).
+3.  <span class="badge badge-open">open</span> **grow-app framework** — Next vs SvelteKit; server-capable either way (BFF architecture pinned, decision 21), one service in two run-modes. The residual choice is the specific framework, not server-vs-SPA.
+4.  <span class="badge badge-decided">resolved</span> **Central-broker resilience** — resolved by decision 22: each site (incl. Daniel's) runs its own local broker, so the central role can co-locate now and lift later; a media-server reboot affects only aggregation/remote, never a site's local control. Still worth an explicit test once the Pi-4 lift happens.
 5.  <span class="badge badge-open">open</span> **AC Infinity takeover depth** — front the cloud as-is vs progressively replace its fan/relay role with local ESP control (ties to decision 16).
 
 ## 11. Out of scope (for now)
@@ -312,9 +344,11 @@ flowchart TB
 
 ## 12. Phase plan
 
-- **Phase 0 — broker + edge telemetry.** Stand up central Mosquitto on
-  media-server; add `mqtt:` (discovery + LWT) to the AtomS3U rig's ESPHome
-  config; prove telemetry flows + retained setpoints round-trip.
+- **Phase 0 — site broker + edge telemetry.** Stand up Daniel's **site broker**
+  on media-server (+ the central broker and a loopback bridge, so the full
+  topology is exercised from day one); add `mqtt:` (discovery + LWT) to the
+  AtomS3U rig pointed at the site broker (`grow/daniel-home/#`); prove telemetry
+  flows + retained setpoints round-trip.
 - **Phase 1 — grow-app v1 (site mode).** Subscribe local broker → SSE/WS →
   minimal responsive PWA; run on media-server (Daniel's site = central). Tab5
   kiosks it. Prove local monitoring + control.
