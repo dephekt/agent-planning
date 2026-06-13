@@ -63,6 +63,7 @@ nav:
   - Home: index.md
   - Briefs:
       - Grow control system: briefs/grow-control-system.md
+      - Grow app Phase 1: briefs/grow-app-phase-1.md
 
 extra_css:
   - assets/extra.css

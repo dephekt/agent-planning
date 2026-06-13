@@ -1,11 +1,11 @@
 # Grow Control System
 
-Design brief · brainstorm → pre-planning artifact
+Design brief · phase 1 planning artifact
 
 **Scope:** Replace Home Assistant as the grow frontend with an MQTT-based,
 multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
 (remote, mirrored). **Remote/UI:** multi-tenant PWA at `grow.dephekt.net`.
-**Status:** <span class="badge badge-info">brainstorm → pre-planning</span>
+**Status:** <span class="badge badge-info">Phase 0 complete → Phase 1 planning</span>
 
 ## About this document
 
@@ -18,7 +18,8 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
     1.  **Establish context** — why move off HA, and the framing principle.
     2.  **Pin decisions** — choices already made, with rationale.
     3.  **Surface the shape** — topology, layers, the MQTT/auth/fleet planes.
-    4.  **Track open threads** — the forks still to resolve before planning.
+    4.  **Track open threads** — the forks still to resolve before the relevant
+        implementation phase.
 
 ## Status snapshot
 
@@ -28,9 +29,13 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
 
     **Status:** architecture shape agreed; symmetric N+1 sites + a self-hostable
     central console pinned; client/auth strategy affirmed (confidential BFF +
-    server-capable framework — SvelteKit/Svelte 5, configurable IdP). Not yet planned to tasks. No
-    code written. Next concrete step is Phase 0 (stand up Daniel's site broker +
-    prove ESPHome MQTT telemetry from the AtomS3U bench rig).
+    server-capable framework — SvelteKit/Svelte 5, configurable IdP).
+    **Phase 0 is complete:** Daniel's site broker + central broker are deployed
+    as the `media-stack/mqtt` Mosquitto stack with a site-to-central bridge, and
+    ESPHome configs now publish under `grow/daniel-home/#`. No `grow-app` code
+    has been written yet. Next concrete step is a real Phase 1 implementation
+    plan for `grow-app` v1 in site mode. See
+    [Grow app Phase 1](grow-app-phase-1.md).
 
 ------------------------------------------------------------------------
 
@@ -345,14 +350,17 @@ flowchart TB
 
 ## 12. Phase plan
 
-- **Phase 0 — site broker + edge telemetry.** Stand up Daniel's **site broker**
+- **Phase 0 — site broker + edge telemetry.** <span class="badge badge-decided">done</span>
+  Stand up Daniel's **site broker**
   on media-server (+ the central broker and a loopback bridge, so the full
   topology is exercised from day one); add `mqtt:` (discovery + LWT) to the
   AtomS3U rig pointed at the site broker (`grow/daniel-home/#`); prove telemetry
   flows + retained setpoints round-trip.
-- **Phase 1 — grow-app v1 (site mode).** Subscribe local broker → SSE/WS →
+- **Phase 1 — grow-app v1 (site mode).** <span class="badge badge-info">next</span>
+  Subscribe local broker → SSE/WS →
   minimal responsive PWA; run on media-server (Daniel's site = central). Tab5
-  kiosks it. Prove local monitoring + control.
+  kiosks it. Prove local monitoring + control. Detailed implementation plan:
+  [Grow app Phase 1](grow-app-phase-1.md).
 - **Phase 2 — central / multi-tenant + remote.** Central mode + `grow.dephekt.net`
   behind Pangolin ingress with Keycloak OIDC (`grow-control` client; groups +
   roles); the environment data model (room → tents; soft device→env mapping).
