@@ -34,7 +34,8 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
     are deployed as the `media-stack/mqtt` Mosquitto stack with a
     site-to-central bridge, ESPHome configs publish under `grow/daniel-home/#`,
     and `grow-app` is running as the LAN-local `media-stack/grow` site HMI on
-    port `3080`. Remaining Phase 1 work is HMI polish plus live acceptance notes.
+    port `3080`. Live acceptance notes are captured; remaining Phase 1 work is
+    HMI polish.
     See [Grow app Phase 1](grow-app-phase-1.md).
 
 ------------------------------------------------------------------------
@@ -368,8 +369,8 @@ flowchart TB
 - **Phase 1 — grow-app v1 (site mode).** <span class="badge badge-decided">deployed locally</span>
   Local broker → server-side MQTT session → retained/live entity cache → SSE →
   minimal responsive PWA is running as `media-stack/grow` on Daniel's LAN.
-  Remaining work is HMI polish plus live acceptance notes. Detailed plan:
-  [Grow app Phase 1](grow-app-phase-1.md).
+  Live acceptance notes are captured; remaining work is HMI polish. Detailed
+  plan: [Grow app Phase 1](grow-app-phase-1.md).
 - **Phase 2 — central / multi-tenant + remote.** Central mode + `grow.dephekt.net`
   behind Pangolin ingress with Keycloak OIDC (`grow-control` client; groups +
   roles); the environment data model (room → tents; soft device→env mapping).

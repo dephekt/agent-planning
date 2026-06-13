@@ -190,3 +190,38 @@ Accepted on June 13, 2026 against `http://192.168.8.3:3080`:
 - A dangerous restart command without confirmation returned
   `409 Confirmation required for this command`, and the browser raised a
   confirmation dialog for a dangerous button.
+
+## Live HMI acceptance sweep
+
+Accepted on June 13, 2026 after internal user access was confirmed:
+
+- `grow-app-site` and `mosquitto-site` remained healthy on `media-server`;
+  `/health` returned broker `connected: true`, 2 devices, and 122 entities.
+- Desktop viewport (`1440x900`) and phone viewport (`390x844`) both loaded
+  `http://192.168.8.3:3080` with no Keycloak/OIDC requests, no console errors,
+  no horizontal overflow, broker `Connected`, 2 device cards, 45 writable
+  controls, and 19 dangerous buttons.
+- Live SSE behavior was visible in the HMI: the last-update timestamp changed
+  without a page refresh in both tested viewports.
+- UI command mediation was verified with the safe `CO2 High Threshold` number
+  control by re-submitting its current value; MQTT received `1500` on
+  `grow/daniel-home/atoms3u-sensor-rig/number/co2_high_threshold/command`.
+- Dangerous command protection was verified by canceling a dangerous button
+  confirmation in the browser and by confirming the restart endpoint still
+  returns `409 Confirmation required for this command` when `confirm` is absent.
+
+## Phase 1 polish backlog
+
+Priority order before Phase 2:
+
+1. Add a favicon/static icon so browser favicon requests stop producing 404/500
+   log noise.
+2. Improve HMI scanability for 122 entities: group or collapse diagnostic rows,
+   surface the most important live readings first, and make writable controls
+   easier to find without scrolling through every discovered entity.
+3. Make dangerous controls visually and spatially distinct from ordinary
+   writable controls; keep the existing client confirmation and server-side
+   `confirm` requirement.
+4. Validate the layout on the physical Tab5 or intended kiosk device. Simulated
+   phone/desktop viewports are clean, but physical touch targets and kiosk
+   ergonomics still need real-device notes.
