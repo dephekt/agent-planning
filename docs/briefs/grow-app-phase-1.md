@@ -5,7 +5,7 @@ Implementation plan · site-mode HMI v1
 **Scope:** Build `grow-app` v1 as the LAN-local site-mode HMI/API for
 Daniel's grow site. **Framework:** SvelteKit + Svelte 5 + TypeScript.
 **Broker:** Daniel's site Mosquitto at `grow/daniel-home/#`.
-**Status:** <span class="badge badge-info">ready to implement</span>
+**Status:** <span class="badge badge-decided">deployed locally</span>
 
 ## Outcome
 
@@ -30,6 +30,18 @@ The browser never connects directly to Mosquitto. `grow-app` owns one
 server-side MQTT session, derives the entity model from retained discovery, and
 mediates all reads and writes over HTTP/SSE.
 
+## Current implementation status
+
+Phase 1 app code exists in `/home/daniel/dev/grow-app` and the local MQTT path
+has been proven against Daniel's broker: discovery-derived devices/entities,
+retained/current state seeding, SSE updates, mediated command publishing, and
+dangerous-action confirmation. The production image is published from
+`stackdrift-images/grow-app` and deployed as Daniel's LAN-local
+`media-stack/grow` service on port `3080`.
+
+Remaining Phase 1 work is limited to HMI polish and follow-up live acceptance
+notes from real kiosk/phone use.
+
 ## In Scope
 
 - Scaffold `/home/daniel/dev/grow-app` as SvelteKit, Svelte 5, TypeScript, and
@@ -46,6 +58,11 @@ mediates all reads and writes over HTTP/SSE.
 - Expose all discovered writable controls that have MQTT command topics.
 - Require explicit confirmation before publishing dangerous or momentary actions
   such as restart, calibration, clear calibration, and factory reset.
+- Publish `grow-app` as `codeberg.org/stackdrift-images/grow-app` via the
+  existing `runs-on: stackdrift` Forgejo runner.
+- Deploy Daniel's local HMI as a separate `media-stack/grow` compose stack on
+  LAN port `3080`, attached to the MQTT stack through the shared `grow-mqtt`
+  Docker network.
 
 ## Out of Scope
 
@@ -69,6 +86,8 @@ Site mode uses these defaults:
 | Discovery prefix | `grow/daniel-home/_discovery` |
 | App broker user | `grow-app-site-daniel-home` |
 | App password secret | `MQTT_GROW_APP_SITE_PASSWORD` |
+| Local HMI port | `3080` |
+| App image | `codeberg.org/stackdrift-images/grow-app:edge-node24-bookworm-slim` |
 
 Server responsibilities:
 
@@ -130,7 +149,20 @@ pnpm install --frozen-lockfile
 pnpm check
 pnpm test
 pnpm build
+pnpm exec playwright install chromium
 pnpm test:e2e
+docker build -t grow-app:test .
+```
+
+Deployment:
+
+```bash
+make inject-secrets
+make inject-agent-secrets
+make sync-secrets-media
+make mqtt-up
+make grow-up
+curl http://<media-server-LAN-IP>:3080/health
 ```
 
 Acceptance:
@@ -141,3 +173,20 @@ Acceptance:
 - SSE updates live values without a page refresh.
 - Writable controls publish to the discovered MQTT command topics.
 - Dangerous actions publish only after explicit confirmation.
+
+## Local deployment acceptance
+
+Accepted on June 13, 2026 against `http://192.168.8.3:3080`:
+
+- `grow-app-site` and `mosquitto-site` were healthy on the `media-server`
+  Docker context.
+- `/health` returned broker `connected: true`, 2 devices, and 122 entities.
+- LAN browser load made no Keycloak/OIDC requests and rendered both Atlas Hydro
+  Monitor and AtomS3U Sensor Rig.
+- SSE delivered an initial retained snapshot and live state events; the HMI
+  last-update timestamp changed without refresh.
+- A non-dangerous select control published `rainbow` to
+  `grow/daniel-home/atoms3u-sensor-rig/select/thermal_color_palette/command`.
+- A dangerous restart command without confirmation returned
+  `409 Confirmation required for this command`, and the browser raised a
+  confirmation dialog for a dangerous button.

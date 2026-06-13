@@ -30,12 +30,12 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
     **Status:** architecture shape agreed; symmetric N+1 sites + a self-hostable
     central console pinned; client/auth strategy affirmed (confidential BFF +
     server-capable framework — SvelteKit/Svelte 5, configurable IdP).
-    **Phase 0 is complete:** Daniel's site broker + central broker are deployed
-    as the `media-stack/mqtt` Mosquitto stack with a site-to-central bridge, and
-    ESPHome configs now publish under `grow/daniel-home/#`. No `grow-app` code
-    has been written yet. Next concrete step is a real Phase 1 implementation
-    plan for `grow-app` v1 in site mode. See
-    [Grow app Phase 1](grow-app-phase-1.md).
+    **Phase 1 is deployed locally:** Daniel's site broker + central broker
+    are deployed as the `media-stack/mqtt` Mosquitto stack with a
+    site-to-central bridge, ESPHome configs publish under `grow/daniel-home/#`,
+    and `grow-app` is running as the LAN-local `media-stack/grow` site HMI on
+    port `3080`. Remaining Phase 1 work is HMI polish plus live acceptance notes.
+    See [Grow app Phase 1](grow-app-phase-1.md).
 
 ------------------------------------------------------------------------
 
@@ -365,10 +365,10 @@ flowchart TB
   topology is exercised from day one); add `mqtt:` (discovery + LWT) to the
   AtomS3U rig pointed at the site broker (`grow/daniel-home/#`); prove telemetry
   flows + retained setpoints round-trip.
-- **Phase 1 — grow-app v1 (site mode).** <span class="badge badge-info">next</span>
-  Subscribe local broker → SSE/WS →
-  minimal responsive PWA; run on media-server (Daniel's site = central). Tab5
-  kiosks it. Prove local monitoring + control. Detailed implementation plan:
+- **Phase 1 — grow-app v1 (site mode).** <span class="badge badge-decided">deployed locally</span>
+  Local broker → server-side MQTT session → retained/live entity cache → SSE →
+  minimal responsive PWA is running as `media-stack/grow` on Daniel's LAN.
+  Remaining work is HMI polish plus live acceptance notes. Detailed plan:
   [Grow app Phase 1](grow-app-phase-1.md).
 - **Phase 2 — central / multi-tenant + remote.** Central mode + `grow.dephekt.net`
   behind Pangolin ingress with Keycloak OIDC (`grow-control` client; groups +

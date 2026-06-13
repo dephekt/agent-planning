@@ -20,7 +20,7 @@ docs system.
     autonomous per-site control islands bridged to a central hub for analytics,
     fleet management, and remote SSO access.
 
-    Status: **Phase 0 complete → Phase 1 planning** · Lead: Daniel
+    Status: **Phase 1 deployed locally** · Lead: Daniel
 
 -   :material-leaf: **[Grow app Phase 1](briefs/grow-app-phase-1.md)**
 
@@ -30,7 +30,7 @@ docs system.
     discovery-derived entities, retained/live state, SSE updates, and local
     command mediation.
 
-    Status: **ready to implement** · Lead: Daniel
+    Status: **deployed locally** · Lead: Daniel
 
 </div>
 
