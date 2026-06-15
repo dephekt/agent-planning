@@ -77,7 +77,7 @@ tasks:
   - ref: HGC-006
     title: Add grow-app favicon and static app icon
     swimlane: Phase 1 - Site HMI polish
-    column: Ready
+    column: Done
     tags: [repo:grow-app, area:ui, type:feature, priority:p0, site:daniel-home]
     affected_repos: [grow-app]
     rationale: Live acceptance found favicon requests creating avoidable 404/500 log noise.
