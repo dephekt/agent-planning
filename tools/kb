@@ -585,13 +585,7 @@ def task_external_link(ref: str, title: str, url: str) -> None:
             return
     link_id = runtime.api.call(
         "createExternalTaskLink",
-        {
-            "task_id": task_id,
-            "url": url,
-            "dependency": "weblink",
-            "type": "related",
-            "title": title,
-        },
+        [task_id, url, "related", "auto", title],
     )
     emit({"created": True, "link_id": link_id})
 

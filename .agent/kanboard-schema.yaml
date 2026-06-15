@@ -22,6 +22,8 @@ tags:
   - repo:grow-fleet
   - repo:esphome-components
   - repo:media-stack
+  - repo:homeassistant-acinfinity
+  - repo:pulse-sensors-appdaemon
   - area:ui
   - area:mqtt
   - area:firmware

@@ -23,3 +23,51 @@ tasks:
     id: 5
     project: HGC
     title: Define central-mode site authorization model
+  HGC-006:
+    id: 6
+    project: HGC
+    title: Add grow-app favicon and static app icon
+  HGC-007:
+    id: 7
+    project: HGC
+    title: Implement central-mode BFF session and anonymous rejection
+  HGC-008:
+    id: 8
+    project: HGC
+    title: Configure grow.dephekt.net Keycloak and Pangolin routing
+  HGC-009:
+    id: 9
+    project: HGC
+    title: Build central read-only multi-site dashboard
+  HGC-010:
+    id: 10
+    project: HGC
+    title: Define retained setpoint versus momentary command contract
+  HGC-011:
+    id: 11
+    project: HGC
+    title: Define site bridge ACL and credential template
+  HGC-012:
+    id: 12
+    project: HGC
+    title: Implement AC Infinity MQTT bridge
+  HGC-013:
+    id: 13
+    project: HGC
+    title: Implement Pulse Labs MQTT bridge
+  HGC-014:
+    id: 14
+    project: HGC
+    title: Decide and provision Daniel dedicated site hub
+  HGC-015:
+    id: 15
+    project: HGC
+    title: Provision Greg site hub and Tailscale MQTT bridge
+  HGC-016:
+    id: 16
+    project: HGC
+    title: Add InfluxDB history ingest and charting path
+  HGC-017:
+    id: 17
+    project: HGC
+    title: Implement grow-rules skeleton for retained setpoints

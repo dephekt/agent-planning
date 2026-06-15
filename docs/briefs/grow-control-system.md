@@ -30,11 +30,13 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
     **Status:** architecture shape agreed; symmetric N+1 sites + a self-hostable
     central console pinned; client/auth strategy affirmed (confidential BFF +
     server-capable framework — SvelteKit/Svelte 5, configurable IdP).
-    **Phase 0 is complete:** Daniel's site broker + central broker are deployed
-    as the `media-stack/mqtt` Mosquitto stack with a site-to-central bridge, and
-    ESPHome configs now publish under `grow/daniel-home/#`. No `grow-app` code
-    has been written yet. Next concrete step is a real Phase 1 implementation
-    plan for `grow-app` v1 in site mode. See
+    **Phase 1 is deployed locally:** Daniel's site broker + central broker
+    are deployed as the `media-stack/mqtt` Mosquitto stack with a
+    site-to-central bridge, ESPHome configs publish under `grow/daniel-home/#`,
+    and `grow-app` is running as the LAN-local `media-stack/grow` site HMI on
+    port `3080`. Live acceptance notes are captured; remaining Phase 1 work is
+    HMI polish.
+    See
     [Grow app Phase 1](grow-app-phase-1.md).
 
 ------------------------------------------------------------------------
@@ -289,6 +291,25 @@ flowchart TB
 - **Git is the source of truth;** an ESPHome dashboard on each site hub pulls +
   OTA-flashes its local devices; Daniel reaches Greg's over Tailscale. Per-site
   `secrets.yaml` (wifi) lives on the hub, never in git.
+- **Release packages are the app-facing OTA source.** `grow-fleet` now publishes
+  compiled firmware through the Forgejo/Codeberg generic package API:
+  `<package>/<version>/<device>.ota.bin`, `<device>.factory.bin`, and
+  `<device>.manifest.json`. Release tags restore runner-local firmware cache for
+  the tagged commit, package the artifacts, and publish durable OTA payloads.
+  The manifest is the contract grow-app should consume for update discovery:
+  `device`, `package`, `version`, `source_sha`, dependency/build metadata,
+  artifact filenames, and checksums. Changelogs do not have to exist for the
+  first implementation, but the metadata shape should allow optional release
+  notes/changelog URLs later.
+- **grow-app owns the human update workflow.** Both site-mode and central-mode
+  grow-app should expose a Settings -> Device updates area. It should present a
+  familiar "Device updates available!" state, list controllers with updates, show
+  the installed version -> available version transition, reserve space for
+  changelog/release-note summaries, and offer per-controller update buttons plus
+  an "Apply all" action for eligible updates. Site mode performs local OTA
+  against LAN controllers; central/remote mode delegates the update request to
+  the target site's local app/hub over the same site bridge/Tailscale plane so a
+  remote user never needs direct browser-to-device LAN access.
 - **Provisioning Greg:** flash proven firmware at Daniel's first, ship/install,
   connect wifi (improv / per-site secret). "Buy the same sensors, flash, plug
   in."
@@ -331,6 +352,7 @@ flowchart TB
 23. <span class="badge badge-decided">decided</span> **The central console is a self-hostable role — federation is a pinned goal.** OSS repos; anyone can run their own console on a VPS and point a site at it (or at no console). Forces: the central app authenticates against a **configurable** OIDC provider (not a hardcoded Keycloak), the site↔console link is generic (any endpoint), and the shared units carry no dephekt-specific assumptions. Anti-lock-in is the thesis — the open inversion of Pulse Grow.
 24. <span class="badge badge-decided">decided</span> **Config-as-source-of-truth; the UI is a generator over it.** Central-management settings (remote broker endpoint + creds, IdP info, site identity) are a declarative config (YAML or similar) that the app consumes. A "Remote Management" area in grow-app gives regular users a rich UI to enter them; power users / automated deploys hand-author or supply the config file directly. Both paths converge on the same generated artifact — the UI never becomes a second source of truth.
 25. <span class="badge badge-decided">decided</span> **grow-app frontend = SvelteKit (Svelte 5).** Resolves fork 3. Chosen over Next.js for lower boilerplate (a non-frontend owner can read and maintain the source), language-native reactivity that suits live MQTT telemetry (a value arriving → the UI updating is nearly free), and lighter bundles for the Tab5 kiosk + phones. The one real cost — coding agents blending deprecated Svelte 4 idioms with Svelte 5 **runes** — is mitigated by a Svelte-5-only guardrail lifted into grow-app's `AGENTS.md` at scaffold time (see §14) plus a pinned `svelte@^5` major. The server-capable BFF architecture (decision 21) is unchanged: SvelteKit *is* the server, in two run-modes (decision 8).
+26. <span class="badge badge-decided">decided</span> **Firmware packages become first-class app updates.** The Forgejo generic package OTA system is not only a CI artifact store; grow-app should use it as the source of available controller updates. A Settings -> Device updates page should compare controller-reported installed firmware against package manifests, show `old version -> new version`, optionally surface changelogs when release metadata exists, and support both targeted updates and "Apply all" for safe batches. Local mode applies OTA directly from the site hub; remote mode requests the target site's hub/local app to apply the update.
 
 ## 10. Open threads / forks
 
@@ -370,7 +392,8 @@ flowchart TB
   Tailscale), Keycloak seat (group `/grow/greg-home` + role) + tenant scoping,
   mirrored hardware shipped/flashed.
 - **Phase 5 — fleet + history.** GitOps firmware (packages + per-site dashboard);
-  InfluxDB history/charts.
+  grow-app Settings -> Device updates using the OTA package manifests for local
+  and remote update workflows; InfluxDB history/charts.
 - **Phase 6 — grow-rules.** Crop steering / irrigation per-site on the hub.
 
 ------------------------------------------------------------------------

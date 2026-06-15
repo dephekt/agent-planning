@@ -2,7 +2,7 @@ tasks:
   - ref: HGC-001
     title: Improve HMI scanability for 122 discovered entities
     swimlane: Phase 1 - Site HMI polish
-    column: Backlog
+    column: Ready
     tags: [repo:grow-app, area:ui, type:feature, priority:p0, site:daniel-home]
     affected_repos: [grow-app]
     rationale: The first site-mode HMI works, but 122 entities make repeated operational use too noisy.
@@ -17,7 +17,7 @@ tasks:
   - ref: HGC-002
     title: Make dangerous controls visually distinct
     swimlane: Phase 1 - Site HMI polish
-    column: Backlog
+    column: Ready
     tags: [repo:grow-app, area:ui, area:safety, type:feature, priority:p0]
     affected_repos: [grow-app]
     rationale: Dangerous ESPHome actions already require confirmation, but they need clearer visual separation from routine controls.
@@ -73,3 +73,188 @@ tasks:
     acceptance:
       - OIDC claims and authorization rules are documented enough for implementation.
       - Open remote write vs read-only decisions are explicit.
+
+  - ref: HGC-006
+    title: Add grow-app favicon and static app icon
+    swimlane: Phase 1 - Site HMI polish
+    column: Ready
+    tags: [repo:grow-app, area:ui, type:feature, priority:p0, site:daniel-home]
+    affected_repos: [grow-app]
+    rationale: Live acceptance found favicon requests creating avoidable 404/500 log noise.
+    requirements:
+      - Add a simple grow-app favicon/static icon.
+      - Ensure the browser and built app serve it without errors.
+      - Keep the asset lightweight and suitable for local HMI use.
+    acceptance:
+      - Browser favicon requests no longer produce 404/500 log entries.
+      - The production build includes and serves the icon.
+
+  - ref: HGC-007
+    title: Implement central-mode BFF session and anonymous rejection
+    swimlane: Phase 2 - Central / multi-tenant remote
+    column: Backlog
+    tags: [repo:grow-app, area:auth, area:multi-site, type:feature, priority:p0]
+    affected_repos: [grow-app]
+    rationale: Central mode must authenticate at the app layer while site mode remains LAN-local and IdP-free.
+    requirements:
+      - Add central-mode OIDC auth-code flow with a confidential backend.
+      - Store tokens server-side and expose only an HttpOnly browser session.
+      - Reject anonymous central-mode requests before rendering site data.
+      - Preserve site-mode behavior without Keycloak/OIDC.
+    acceptance:
+      - Central mode redirects anonymous users to OIDC login.
+      - Authenticated users receive a server-backed session.
+      - Site mode still loads locally without OIDC dependencies.
+
+  - ref: HGC-008
+    title: Configure grow.dephekt.net Keycloak and Pangolin routing
+    swimlane: Phase 2 - Central / multi-tenant remote
+    column: Backlog
+    tags: [repo:media-stack, repo:grow-app, area:auth, area:ops, type:ops, priority:p0]
+    affected_repos: [media-stack, grow-app]
+    rationale: The remote PWA needs ingress and OIDC configuration that routes traffic without relying on Pangolin SSO.
+    requirements:
+      - Configure a grow-app OIDC client in the home realm.
+      - Configure Pangolin/Newt as ingress and TLS only for grow.dephekt.net.
+      - Wire deployment settings for central-mode grow-app.
+    acceptance:
+      - grow.dephekt.net reaches central-mode grow-app.
+      - Pangolin SSO is not the app authorization boundary.
+      - OIDC callback and logout URLs match the deployed route.
+
+  - ref: HGC-009
+    title: Build central read-only multi-site dashboard
+    swimlane: Phase 2 - Central / multi-tenant remote
+    column: Backlog
+    tags: [repo:grow-app, area:multi-site, area:mqtt, area:ui, type:feature, priority:p1]
+    affected_repos: [grow-app]
+    rationale: Central mode should first prove safe remote visibility before remote writes.
+    requirements:
+      - Consume aggregated MQTT state from the central broker.
+      - Scope visible sites from authenticated user claims.
+      - Render a multi-site dashboard without command publishing.
+    acceptance:
+      - A user only sees permitted sites.
+      - Daniel can view Daniel and Greg site data when both are bridged.
+      - The dashboard is explicitly read-only until write policy is implemented.
+
+  - ref: HGC-010
+    title: Define retained setpoint versus momentary command contract
+    swimlane: Phase 2 - Central / multi-tenant remote
+    column: Backlog
+    tags: [repo:agent-planning, repo:grow-app, repo:grow-fleet, area:mqtt, area:safety, type:research, priority:p0]
+    affected_repos: [agent-planning, grow-app, grow-fleet]
+    rationale: Retained setpoints are needed for resilient control, but momentary actions must not be retained or replayed.
+    requirements:
+      - Document which command classes are retained setpoints.
+      - Document which actions are momentary and never retained.
+      - Define how grow-app and controllers should present and enforce the distinction.
+    acceptance:
+      - The MQTT command contract is explicit enough for app and firmware implementation.
+      - Dangerous momentary actions cannot be confused with retained desired state.
+
+  - ref: HGC-011
+    title: Define site bridge ACL and credential template
+    swimlane: Phase 2 - Central / multi-tenant remote
+    column: Backlog
+    tags: [repo:media-stack, repo:agent-planning, area:mqtt, area:multi-site, area:ops, type:ops, priority:p1, site:greg-home]
+    affected_repos: [media-stack, agent-planning]
+    rationale: Each site bridge must be scoped to its own MQTT namespace as a defense-in-depth tenant boundary.
+    requirements:
+      - Define a per-site Mosquitto bridge credential pattern.
+      - Define ACLs that restrict each site to grow/<site>/#.
+      - Document how site hub secrets are generated and distributed.
+    acceptance:
+      - Greg's planned bridge credential cannot access Daniel's namespace.
+      - The template can be reused for later sites.
+
+  - ref: HGC-012
+    title: Implement AC Infinity MQTT bridge
+    swimlane: Phase 3 - Bridges
+    column: Backlog
+    tags: [repo:homeassistant-acinfinity, area:bridges, area:mqtt, type:feature, priority:p1]
+    affected_repos: [homeassistant-acinfinity, agent-planning]
+    rationale: AC Infinity devices should publish into the same MQTT shape as ESPHome controllers.
+    requirements:
+      - Lift or wrap the existing ACInfinityClient outside Home Assistant.
+      - Publish state and availability under the site namespace.
+      - Publish writable controls only when command semantics are understood.
+    acceptance:
+      - AC Infinity telemetry appears in grow-app through MQTT.
+      - The bridge does not depend on Home Assistant runtime.
+
+  - ref: HGC-013
+    title: Implement Pulse Labs MQTT bridge
+    swimlane: Phase 3 - Bridges
+    column: Backlog
+    tags: [repo:pulse-sensors-appdaemon, repo:agent-planning, area:bridges, area:mqtt, type:feature, priority:p2]
+    affected_repos: [pulse-sensors-appdaemon, agent-planning]
+    rationale: Existing Pulse sensor integration work should become a plain MQTT publisher instead of an AppDaemon app.
+    requirements:
+      - Extract Pulse polling/auth behavior from the existing AppDaemon context.
+      - Publish readings under the configured site namespace.
+      - Document any cloud dependency and data-gap behavior.
+    acceptance:
+      - Pulse telemetry can be consumed by grow-app through MQTT.
+      - The bridge is independent of Home Assistant/AppDaemon.
+
+  - ref: HGC-014
+    title: Decide and provision Daniel dedicated site hub
+    swimlane: Phase 4 - Greg's site
+    column: Backlog
+    tags: [repo:media-stack, repo:agent-planning, area:ops, area:mqtt, type:ops, priority:p1, site:daniel-home]
+    affected_repos: [media-stack, agent-planning]
+    rationale: Daniel's site currently co-locates on media-server, but the architecture wants each site to be a symmetric island.
+    requirements:
+      - Decide whether the repurposed HA Pi 4 is sufficient for Daniel's site hub.
+      - Define the remote Docker context and deployment boundary.
+      - Move or plan Mosquitto/grow-app site services without disrupting the central role.
+    acceptance:
+      - Daniel's site hub target is chosen and documented.
+      - The migration plan preserves local site control during media-server maintenance.
+
+  - ref: HGC-015
+    title: Provision Greg site hub and Tailscale MQTT bridge
+    swimlane: Phase 4 - Greg's site
+    column: Backlog
+    tags: [repo:media-stack, repo:grow-fleet, repo:agent-planning, area:mqtt, area:ops, area:multi-site, type:feature, priority:p1, site:greg-home]
+    affected_repos: [media-stack, grow-fleet, agent-planning]
+    rationale: Greg's site is the first proof that the system works as an autonomous remote island.
+    requirements:
+      - Provision local Mosquitto and site-mode grow-app on Greg's hub.
+      - Configure Tailscale bridge to the central broker.
+      - Scope Greg's bridge and user access to grow/greg-home/#.
+      - Flash/install proven controller firmware for Greg's hardware.
+    acceptance:
+      - Greg's site keeps local control if the central link drops.
+      - Central mode can observe Greg's site when the bridge is up.
+
+  - ref: HGC-016
+    title: Add InfluxDB history ingest and charting path
+    swimlane: Phase 5 - Fleet updates + history
+    column: Backlog
+    tags: [repo:grow-app, repo:media-stack, area:storage, area:ui, type:feature, priority:p2]
+    affected_repos: [grow-app, media-stack]
+    rationale: Current state comes from retained MQTT, but historical charts need time-series ingest.
+    requirements:
+      - Define which MQTT topics are written to InfluxDB.
+      - Deploy or reuse InfluxDB for central history.
+      - Add charting path in grow-app without making history required for live operation.
+    acceptance:
+      - Live HMI still works when history storage is unavailable.
+      - Selected sensor history can be queried and graphed.
+
+  - ref: HGC-017
+    title: Implement grow-rules skeleton for retained setpoints
+    swimlane: Phase 6 - grow-rules
+    column: Backlog
+    tags: [repo:agent-planning, area:control-loop, area:safety, area:mqtt, type:feature, priority:p1]
+    affected_repos: [agent-planning, grow-app]
+    rationale: Crop steering and irrigation rules should run per-site on the hub and publish setpoints, not depend on central availability.
+    requirements:
+      - Define a minimal per-site grow-rules process shape.
+      - Read current state from MQTT and publish retained setpoints.
+      - Keep algorithms simple placeholders until crop strategy is specified.
+    acceptance:
+      - A per-site rules process can run without central services.
+      - Published setpoints follow the retained command contract from HGC-010.
