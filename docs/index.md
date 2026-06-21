@@ -20,17 +20,26 @@ docs system.
     autonomous per-site control islands bridged to a central hub for analytics,
     fleet management, and remote SSO access.
 
-    Status: **Phase 1 deployed locally** · Lead: Daniel
+    Status: **Phase 1 deployed locally + site OTA shipped** · Lead: Daniel
 
 -   :material-leaf: **[Grow app Phase 1](briefs/grow-app-phase-1.md)**
 
     ---
 
-    Site-mode SvelteKit/Svelte 5 HMI plan for Daniel's local broker: MQTT
-    discovery-derived entities, retained/live state, SSE updates, and local
-    command mediation.
+    Site-mode SvelteKit/Svelte 5 HMI for Daniel's local broker: MQTT
+    discovery-derived entities, retained/live state, SSE updates, local command
+    mediation, and per-device stable/edge firmware updates.
 
-    Status: **deployed locally** · Lead: Daniel
+    Status: **deployed locally + OTA shipped** · Lead: Daniel
+
+-   :material-palette: **[Grow app UI redesign workflow](briefs/grow-app-ui-redesign.md)**
+
+    ---
+
+    Penpot-led workflow for comparing HMI overview/settings concepts before
+    implementing the selected direction in grow-app.
+
+    Status: **workflow scaffolded** · Lead: Daniel
 
 </div>
 

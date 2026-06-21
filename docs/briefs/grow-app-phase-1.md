@@ -5,7 +5,7 @@ Implementation plan · site-mode HMI v1
 **Scope:** Build `grow-app` v1 as the LAN-local site-mode HMI/API for
 Daniel's grow site. **Framework:** SvelteKit + Svelte 5 + TypeScript.
 **Broker:** Daniel's site Mosquitto at `grow/daniel-home/#`.
-**Status:** <span class="badge badge-decided">deployed locally</span>
+**Status:** <span class="badge badge-decided">deployed locally + OTA updates shipped</span>
 
 ## Outcome
 
@@ -36,11 +36,43 @@ Phase 1 app code exists in `/home/daniel/dev/grow-app` and the local MQTT path
 has been proven against Daniel's broker: discovery-derived devices/entities,
 retained/current state seeding, SSE updates, mediated command publishing, and
 dangerous-action confirmation. The production image is published from
-`stackdrift-images/grow-app` and deployed as Daniel's LAN-local
-`media-stack/grow` service on port `3080`.
+`stackdrift/grow-app` and deployed as Daniel's LAN-local `media-stack/grow`
+service on port `3080`.
 
-Remaining Phase 1 work is limited to HMI polish and follow-up live acceptance
-notes from real kiosk/phone use.
+Channel-aware firmware updates are also shipped for site mode. `grow-fleet`
+publishes private Codeberg generic firmware packages under
+`stackdrift-firmware`; `grow-app` resolves the selected stable/edge channel,
+serves the local ESPHome update manifest and checksum-validated binary proxy,
+and publishes the non-retained MQTT update command from Device Settings.
+
+## Done
+
+- Site-mode SvelteKit/Svelte 5 app scaffolded and deployed on LAN port `3080`.
+- Server-side MQTT session, retained/live entity cache, SSE snapshots, and HTTP
+  command mediation are implemented.
+- Device settings are split from the high-frequency dashboard and grouped by
+  retained UI metadata.
+- Dangerous command handling requires explicit browser confirmation and a
+  server-side `confirm` flag.
+- Firmware update discovery/orchestration is implemented for current devices:
+  app-owned channel selection, stable/edge package lookup, local manifest and
+  binary proxy, update-check trigger, and per-device Apply flow.
+- The app image moved with the repo and now publishes as
+  `codeberg.org/stackdrift/grow-app:edge-node24-bookworm-slim`.
+
+## Still To Do
+
+- Polish the HMI information architecture and visual hierarchy so the
+  operations overview stays scan-friendly as entity counts grow.
+- Validate the physical Tab5/kiosk ergonomics with real touch use, not only
+  simulated viewports.
+- Design the next overview/settings iteration in Penpot before larger HMI code
+  changes; see [Grow app UI redesign workflow](grow-app-ui-redesign.md).
+- Implement central/remote mode, OIDC authorization, multi-site tenancy,
+  history, AC Infinity/Pulse bridges, and `grow-rules` in later phases.
+- Keep firmware-update follow-ups separate from HGC-4: HGC-18 tracks edge
+  publish path filters/concurrency, and HGC-19 tracks custom ESPHome update
+  install payload support.
 
 ## In Scope
 
@@ -58,7 +90,7 @@ notes from real kiosk/phone use.
 - Expose all discovered writable controls that have MQTT command topics.
 - Require explicit confirmation before publishing dangerous or momentary actions
   such as restart, calibration, clear calibration, and factory reset.
-- Publish `grow-app` as `codeberg.org/stackdrift-images/grow-app` via the
+- Publish `grow-app` as `codeberg.org/stackdrift/grow-app` via the
   existing `runs-on: stackdrift` Forgejo runner.
 - Deploy Daniel's local HMI as a separate `media-stack/grow` compose stack on
   LAN port `3080`, attached to the MQTT stack through the shared `grow-mqtt`
@@ -87,7 +119,7 @@ Site mode uses these defaults:
 | App broker user | `grow-app-site-daniel-home` |
 | App password secret | `MQTT_GROW_APP_SITE_PASSWORD` |
 | Local HMI port | `3080` |
-| App image | `codeberg.org/stackdrift-images/grow-app:edge-node24-bookworm-slim` |
+| App image | `codeberg.org/stackdrift/grow-app:edge-node24-bookworm-slim` |
 
 Server responsibilities:
 
@@ -210,18 +242,28 @@ Accepted on June 13, 2026 after internal user access was confirmed:
   confirmation in the browser and by confirming the restart endpoint still
   returns `409 Confirmation required for this command` when `confirm` is absent.
 
-## Phase 1 polish backlog
+## Remaining Phase 1 polish backlog
 
-Priority order before Phase 2:
+Priority order before larger Phase 2 work:
 
-1. Add a favicon/static icon so browser favicon requests stop producing 404/500
-   log noise.
-2. Improve HMI scanability for 122 entities: group or collapse diagnostic rows,
+1. Improve HMI scanability for 129+ entities: group or collapse diagnostic rows,
    surface the most important live readings first, and make writable controls
    easier to find without scrolling through every discovered entity.
-3. Make dangerous controls visually and spatially distinct from ordinary
+2. Make dangerous controls visually and spatially distinct from ordinary
    writable controls; keep the existing client confirmation and server-side
    `confirm` requirement.
-4. Validate the layout on the physical Tab5 or intended kiosk device. Simulated
+3. Validate the layout on the physical Tab5 or intended kiosk device. Simulated
    phone/desktop viewports are clean, but physical touch targets and kiosk
    ergonomics still need real-device notes.
+
+## Remaining firmware update backlog
+
+- Site-mode Settings -> Device updates is implemented for per-device updates.
+- Future central/remote mode should delegate update operations to the target
+  site's local app/hub rather than requiring the browser to reach controllers
+  directly.
+- HGC-18: add grow-fleet edge publish path filters and a concurrency guard.
+- HGC-19: support custom ESPHome update install payloads if a future device
+  exposes one instead of the default `INSTALL`.
+- Consider batch/"Apply all" UX after per-device update behavior has more live
+  mileage.

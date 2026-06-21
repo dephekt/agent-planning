@@ -5,7 +5,7 @@ Design brief · phase 1 planning artifact
 **Scope:** Replace Home Assistant as the grow frontend with an MQTT-based,
 multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
 (remote, mirrored). **Remote/UI:** multi-tenant PWA at `grow.dephekt.net`.
-**Status:** <span class="badge badge-info">Phase 0 complete → Phase 1 planning</span>
+**Status:** <span class="badge badge-decided">Phase 1 deployed locally + site OTA shipped</span>
 
 ## About this document
 
@@ -24,7 +24,7 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
 ## Status snapshot
 
 !!! note ""
-    **Decisions pinned:** 25  ·  **Open forks:** 3  ·  **Deferred / out of scope:** 5
+    **Decisions pinned:** 26  ·  **Open forks:** 3  ·  **Deferred / out of scope:** 5
     ·  **Phases sketched:** 7
 
     **Status:** architecture shape agreed; symmetric N+1 sites + a self-hostable
@@ -34,8 +34,10 @@ multi-site, industrial-style control system. **Sites:** Daniel (home) + Greg
     are deployed as the `media-stack/mqtt` Mosquitto stack with a
     site-to-central bridge, ESPHome configs publish under `grow/daniel-home/#`,
     and `grow-app` is running as the LAN-local `media-stack/grow` site HMI on
-    port `3080`. Live acceptance notes are captured; remaining Phase 1 work is
-    HMI polish.
+    port `3080`. Site-mode channel-aware firmware updates are shipped through
+    private `stackdrift-firmware` packages and the grow-app Device Settings
+    update panel. Remaining Phase 1 work is HMI polish and real-kiosk
+    ergonomics.
     See [Grow app Phase 1](grow-app-phase-1.md).
 
 ------------------------------------------------------------------------
@@ -290,6 +292,20 @@ flowchart TB
 - **Git is the source of truth;** an ESPHome dashboard on each site hub pulls +
   OTA-flashes its local devices; Daniel reaches Greg's over Tailscale. Per-site
   `secrets.yaml` (wifi) lives on the hub, never in git.
+- **Release packages are the app-facing OTA source.** `grow-fleet` publishes
+  compiled firmware through the Forgejo/Codeberg generic package API under the
+  private `stackdrift-firmware` owner. Stable packages come from firmware tags;
+  edge packages come from successful `main` builds. Manifests include channel,
+  project/package identity, node/device IDs, source SHA, chip family, artifact
+  filenames, checksums, and release/changelog summaries.
+- **grow-app owns the human update workflow.** Site-mode grow-app now exposes a
+  Device Settings firmware update panel. It stores per-device selected channel,
+  resolves the latest stable/edge package, serves a local ESPHome update
+  manifest and checksum-validated binary proxy, triggers the device update-check
+  button when discovered, and publishes the non-retained MQTT update install
+  command for per-device Apply. Central/remote mode still needs to delegate the
+  update request to the target site's local app/hub so a remote user never needs
+  direct browser-to-device LAN access.
 - **Provisioning Greg:** flash proven firmware at Daniel's first, ship/install,
   connect wifi (improv / per-site secret). "Buy the same sensors, flash, plug
   in."
@@ -332,6 +348,7 @@ flowchart TB
 23. <span class="badge badge-decided">decided</span> **The central console is a self-hostable role — federation is a pinned goal.** OSS repos; anyone can run their own console on a VPS and point a site at it (or at no console). Forces: the central app authenticates against a **configurable** OIDC provider (not a hardcoded Keycloak), the site↔console link is generic (any endpoint), and the shared units carry no dephekt-specific assumptions. Anti-lock-in is the thesis — the open inversion of Pulse Grow.
 24. <span class="badge badge-decided">decided</span> **Config-as-source-of-truth; the UI is a generator over it.** Central-management settings (remote broker endpoint + creds, IdP info, site identity) are a declarative config (YAML or similar) that the app consumes. A "Remote Management" area in grow-app gives regular users a rich UI to enter them; power users / automated deploys hand-author or supply the config file directly. Both paths converge on the same generated artifact — the UI never becomes a second source of truth.
 25. <span class="badge badge-decided">decided</span> **grow-app frontend = SvelteKit (Svelte 5).** Resolves fork 3. Chosen over Next.js for lower boilerplate (a non-frontend owner can read and maintain the source), language-native reactivity that suits live MQTT telemetry (a value arriving → the UI updating is nearly free), and lighter bundles for the Tab5 kiosk + phones. The one real cost — coding agents blending deprecated Svelte 4 idioms with Svelte 5 **runes** — is mitigated by a Svelte-5-only guardrail lifted into grow-app's `AGENTS.md` at scaffold time (see §14) plus a pinned `svelte@^5` major. The server-capable BFF architecture (decision 21) is unchanged: SvelteKit *is* the server, in two run-modes (decision 8).
+26. <span class="badge badge-decided">decided</span> **Firmware packages are first-class app updates.** The Forgejo generic package OTA system is not only a CI artifact store; grow-app uses it as the source of available controller updates in site mode. Device Settings compares installed controller firmware against selected-channel package manifests, surfaces version/source/changelog metadata, and supports targeted per-device Apply. Remote mode should request the target site's hub/local app to apply the update.
 
 ## 10. Open threads / forks
 
@@ -366,11 +383,13 @@ flowchart TB
   topology is exercised from day one); add `mqtt:` (discovery + LWT) to the
   AtomS3U rig pointed at the site broker (`grow/daniel-home/#`); prove telemetry
   flows + retained setpoints round-trip.
-- **Phase 1 — grow-app v1 (site mode).** <span class="badge badge-decided">deployed locally</span>
+- **Phase 1 — grow-app v1 (site mode).** <span class="badge badge-decided">deployed locally + OTA shipped</span>
   Local broker → server-side MQTT session → retained/live entity cache → SSE →
-  minimal responsive PWA is running as `media-stack/grow` on Daniel's LAN.
-  Live acceptance notes are captured; remaining work is HMI polish. Detailed
-  plan: [Grow app Phase 1](grow-app-phase-1.md).
+  responsive PWA is running as `media-stack/grow` on Daniel's LAN. Device
+  Settings includes per-device stable/edge firmware update orchestration through
+  `grow-fleet` packages. Remaining work is HMI polish, physical Tab5 validation,
+  and low-priority firmware workflow hardening. Detailed plan:
+  [Grow app Phase 1](grow-app-phase-1.md).
 - **Phase 2 — central / multi-tenant + remote.** Central mode + `grow.dephekt.net`
   behind Pangolin ingress with Keycloak OIDC (`grow-control` client; groups +
   roles); the environment data model (room → tents; soft device→env mapping).
@@ -379,8 +398,9 @@ flowchart TB
 - **Phase 4 — Greg's site.** Site hub (local Mosquitto + grow-app + bridge over
   Tailscale), Keycloak seat (group `/grow/greg-home` + role) + tenant scoping,
   mirrored hardware shipped/flashed.
-- **Phase 5 — fleet + history.** GitOps firmware (packages + per-site dashboard);
-  InfluxDB history/charts.
+- **Phase 5 — fleet + history.** Complete central/remote update delegation,
+  any batch update UX, per-site dashboard refinements, and InfluxDB
+  history/charts. Site-mode per-device firmware updates are already shipped.
 - **Phase 6 — grow-rules.** Crop steering / irrigation per-site on the hub.
 
 ------------------------------------------------------------------------
