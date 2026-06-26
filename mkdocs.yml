@@ -65,6 +65,8 @@ nav:
       - Grow control system: briefs/grow-control-system.md
       - Grow app Phase 1: briefs/grow-app-phase-1.md
       - Grow app UI redesign workflow: briefs/grow-app-ui-redesign.md
+      - Reference climate node: briefs/reference-climate-node.md
+      - Irrigation control: briefs/irrigation-control.md
 
 extra_css:
   - assets/extra.css
