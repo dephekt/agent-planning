@@ -40,10 +40,11 @@ dangerous-action confirmation. The production image is published from
 service on port `3080`.
 
 Channel-aware firmware updates are also shipped for site mode. `grow-fleet`
-publishes private Codeberg generic firmware packages under
-`stackdrift-firmware`; `grow-app` resolves the selected stable/edge channel,
-serves the local ESPHome update manifest and checksum-validated binary proxy,
-and publishes the non-retained MQTT update command from Device Settings.
+publishes private GHCR OCI firmware packages under
+`ghcr.io/dephekt/grow-fleet-firmware-*`; `grow-app` resolves the selected
+stable/edge channel, serves the local ESPHome update manifest and
+checksum-validated binary proxy, and publishes the non-retained MQTT update
+command from Device Settings.
 
 ## Done
 
@@ -58,7 +59,7 @@ and publishes the non-retained MQTT update command from Device Settings.
   app-owned channel selection, stable/edge package lookup, local manifest and
   binary proxy, update-check trigger, and per-device Apply flow.
 - The app image moved with the repo and now publishes as
-  `codeberg.org/stackdrift/grow-app:edge-node24-bookworm-slim`.
+  `ghcr.io/dephekt/grow-app:edge-node24-bookworm-slim`.
 
 ## Still To Do
 
@@ -90,8 +91,7 @@ and publishes the non-retained MQTT update command from Device Settings.
 - Expose all discovered writable controls that have MQTT command topics.
 - Require explicit confirmation before publishing dangerous or momentary actions
   such as restart, calibration, clear calibration, and factory reset.
-- Publish `grow-app` as `codeberg.org/stackdrift/grow-app` via the
-  existing `runs-on: stackdrift` Forgejo runner.
+- Publish `grow-app` as `ghcr.io/dephekt/grow-app` via GitHub Actions.
 - Deploy Daniel's local HMI as a separate `media-stack/grow` compose stack on
   LAN port `3080`, attached to the MQTT stack through the shared `grow-mqtt`
   Docker network.
@@ -119,7 +119,7 @@ Site mode uses these defaults:
 | App broker user | `grow-app-site-daniel-home` |
 | App password secret | `MQTT_GROW_APP_SITE_PASSWORD` |
 | Local HMI port | `3080` |
-| App image | `codeberg.org/stackdrift/grow-app:edge-node24-bookworm-slim` |
+| App image | `ghcr.io/dephekt/grow-app:edge-node24-bookworm-slim` |
 
 Server responsibilities:
 

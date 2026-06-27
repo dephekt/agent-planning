@@ -224,7 +224,7 @@ vpd:
   `discovery_prefix: grow/daniel-home/_discovery`.
 - `_ui/config`: put **Reference Temperature, Reference Humidity, Air VPD, Leaf VPD**
   in the `overview`/`metrics` dashboard group (mirror the atoms3u `_ui` entities).
-- Register the device in `fleet.yaml` so CI (`.forgejo/workflows/firmware.yml`)
+- Register the device in `fleet.yaml` so CI (`.github/workflows/firmware.yml`)
   compiles/packages it.
 
 ### 5.3 On-device display — `st7789v` (in the device YAML)
@@ -299,7 +299,7 @@ device shows up automatically via the SSE/snapshot path.
         proxy. Fallback topic: `.../sensor/mlx90640_mean_temp/state` (whole-frame).
     3.  **Source topic** — confirm the leaf-temp topic against the live broker:
         `mosquitto_sub -h 192.168.8.3 -t 'grow/daniel-home/atoms3u-sensor-rig/sensor/#' -v`.
-    4.  **CI registration** — confirm whether `.forgejo/workflows/firmware.yml`
+    4.  **CI registration** — confirm whether `.github/workflows/firmware.yml`
         auto-discovers `devices/*.yaml` or needs an explicit matrix entry.
 
 !!! note "Deferred / out of scope"

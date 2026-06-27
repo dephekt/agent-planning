@@ -1,0 +1,25 @@
+name: Build and Publish Agent KB Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+    paths-ignore:
+      - "README.md"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    uses: dephekt/ci-templates/.github/workflows/docker-build.yml@main
+    with:
+      image_name: ghcr.io/dephekt/agent-working-knowledge
+      upstream_image_search: squidfunk/mkdocs-material
+      upstream_name_short: mkdocs

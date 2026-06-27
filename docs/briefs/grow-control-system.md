@@ -293,11 +293,11 @@ flowchart TB
   OTA-flashes its local devices; Daniel reaches Greg's over Tailscale. Per-site
   `secrets.yaml` (wifi) lives on the hub, never in git.
 - **Release packages are the app-facing OTA source.** `grow-fleet` publishes
-  compiled firmware through the Forgejo/Codeberg generic package API under the
-  private `stackdrift-firmware` owner. Stable packages come from firmware tags;
-  edge packages come from successful `main` builds. Manifests include channel,
-  project/package identity, node/device IDs, source SHA, chip family, artifact
-  filenames, checksums, and release/changelog summaries.
+  compiled firmware as private GHCR OCI artifacts under
+  `ghcr.io/dephekt/grow-fleet-firmware-*`. Stable packages come from firmware
+  tags; edge packages come from successful `main` builds. Manifests include
+  channel, project/package identity, node/device IDs, source SHA, chip family,
+  artifact filenames, checksums, and release/changelog summaries.
 - **grow-app owns the human update workflow.** Site-mode grow-app now exposes a
   Device Settings firmware update panel. It stores per-device selected channel,
   resolves the latest stable/edge package, serves a local ESPHome update
@@ -348,7 +348,7 @@ flowchart TB
 23. <span class="badge badge-decided">decided</span> **The central console is a self-hostable role — federation is a pinned goal.** OSS repos; anyone can run their own console on a VPS and point a site at it (or at no console). Forces: the central app authenticates against a **configurable** OIDC provider (not a hardcoded Keycloak), the site↔console link is generic (any endpoint), and the shared units carry no dephekt-specific assumptions. Anti-lock-in is the thesis — the open inversion of Pulse Grow.
 24. <span class="badge badge-decided">decided</span> **Config-as-source-of-truth; the UI is a generator over it.** Central-management settings (remote broker endpoint + creds, IdP info, site identity) are a declarative config (YAML or similar) that the app consumes. A "Remote Management" area in grow-app gives regular users a rich UI to enter them; power users / automated deploys hand-author or supply the config file directly. Both paths converge on the same generated artifact — the UI never becomes a second source of truth.
 25. <span class="badge badge-decided">decided</span> **grow-app frontend = SvelteKit (Svelte 5).** Resolves fork 3. Chosen over Next.js for lower boilerplate (a non-frontend owner can read and maintain the source), language-native reactivity that suits live MQTT telemetry (a value arriving → the UI updating is nearly free), and lighter bundles for the Tab5 kiosk + phones. The one real cost — coding agents blending deprecated Svelte 4 idioms with Svelte 5 **runes** — is mitigated by a Svelte-5-only guardrail lifted into grow-app's `AGENTS.md` at scaffold time (see §14) plus a pinned `svelte@^5` major. The server-capable BFF architecture (decision 21) is unchanged: SvelteKit *is* the server, in two run-modes (decision 8).
-26. <span class="badge badge-decided">decided</span> **Firmware packages are first-class app updates.** The Forgejo generic package OTA system is not only a CI artifact store; grow-app uses it as the source of available controller updates in site mode. Device Settings compares installed controller firmware against selected-channel package manifests, surfaces version/source/changelog metadata, and supports targeted per-device Apply. Remote mode should request the target site's hub/local app to apply the update.
+26. <span class="badge badge-decided">decided</span> **Firmware packages are first-class app updates.** Private GHCR OCI firmware packages are not only a CI artifact store; grow-app uses them as the source of available controller updates in site mode. Device Settings compares installed controller firmware against selected-channel package manifests, surfaces version/source/changelog metadata, and supports targeted per-device Apply. Remote mode should request the target site's hub/local app to apply the update.
 
 ## 10. Open threads / forks
 
@@ -407,9 +407,9 @@ flowchart TB
 
 ## 13. Pointers & references
 
-- **ESPHome monorepo:** `git@codeberg.org:stackdrift/esphome-components.git` —
+- **ESPHome monorepo:** `git@github.com:dephekt/esphome-components.git` —
   components (mlx90640, scd4x_alerts/stats, ezo_types, grow_env_monitor,
-  m5cores3_*) + the AtomS3U bench config + the local dev loop. PR flow via `cb`.
+  m5cores3_*) + the AtomS3U bench config + the local dev loop. PR flow via `gh`.
 - **Pulse pattern:** `~/dev/pulse-sensors-appdaemon` — device-level HA discovery
   (`homeassistant/device/<id>/config`), `via_device` hub→sensor model,
   read-only, **no LWT** (to improve in the rewrite).

@@ -50,5 +50,5 @@ Brief slugs are `<topic>` kebab-case (e.g. `grow-control-system`), or
 (<span class="badge badge-decided">decided</span>,
 <span class="badge badge-open">open</span>,
 <span class="badge badge-deferred">deferred</span>). Diagrams are embedded as
-Mermaid source so they render here and on Codeberg and regenerate via the
+Mermaid source so they render here and on GitHub and regenerate via the
 `diagram` skill. Serve locally with `mkdocs serve`.
