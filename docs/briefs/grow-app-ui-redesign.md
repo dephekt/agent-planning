@@ -6,7 +6,17 @@ Penpot-led design loop for the site-mode HMI
 layout changes while keeping the SvelteKit app and Playwright tests as the
 production source of behavior.
 
-**Status:** <span class="badge badge-info">Mission Control direction selected</span>
+**Status:** <span class="badge badge-decided">Mission Control shipped</span>
+
+!!! success "Shipped"
+    The Mission Control redesign is **implemented and deployed**: dark
+    instrument-panel shell + command bar, 12-column dashboard, IBM Plex fonts, the
+    curated presentation registry, curated **Updates / Alerts / Calibration**
+    surfaces, **draggable alert-threshold cards**, domain-grouped **uPlot trends**
+    backed by the local **InfluxDB history API**, and the **thermal camera** tile.
+    Remaining curated shapes: the **thermal-2 min/max alarm card** and **smart-outlet**
+    controls; the **substrate** panel stays a placeholder until the TEROS-12 probes
+    land (multi-sensor picker). Live tracking: **[GitHub Project](https://github.com/users/dephekt/projects/2)**.
 
 ## Outcome
 

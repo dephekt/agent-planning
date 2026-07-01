@@ -5,7 +5,12 @@ Implementation plan · site-mode HMI v1
 **Scope:** Build `grow-app` v1 as the LAN-local site-mode HMI/API for
 Daniel's grow site. **Framework:** SvelteKit + Svelte 5 + TypeScript.
 **Broker:** Daniel's site Mosquitto at `grow/daniel-home/#`.
-**Status:** <span class="badge badge-decided">deployed locally + OTA updates shipped</span>
+**Status:** <span class="badge badge-decided">deployed locally · Mission Control + history + OTA shipped</span>
+
+!!! tip "Live roadmap"
+    Task tracking has moved to the **GitHub Project —
+    [Hydro Grow Control](https://github.com/users/dephekt/projects/2)**. This brief
+    remains the durable design reference.
 
 ## Outcome
 
@@ -77,20 +82,22 @@ routes.
 
 ## Still To Do
 
-- Polish the HMI information architecture and visual hierarchy so the
-  operations overview stays scan-friendly as entity counts grow.
+The Mission Control redesign, curated settings (Updates/Alerts/Calibration), the
+local InfluxDB history layer + trends, and the thermal camera have since
+**shipped** (see [UI redesign](grow-app-ui-redesign.md) and the
+[GitHub Project](https://github.com/users/dephekt/projects/2)). Remaining:
+
 - Validate the physical Tab5/kiosk ergonomics with real touch use, not only
-  simulated viewports.
-- Implement the Mission Control overview/settings direction from
-  [Grow app UI redesign workflow](grow-app-ui-redesign.md), starting with the
-  visual system and curated settings surfaces that can run on today's retained
-  MQTT snapshot.
-- Implement app-owned auth, per-site remote access, local InfluxDB history,
-  AC Infinity/Pulse bridges, substrate sensing, and `grow-rules` in later
-  phases.
-- Keep firmware-update follow-ups separate from HGC-4: HGC-18 tracks edge
-  publish path filters/concurrency, and HGC-19 tracks custom ESPHome update
-  install payload support.
+  simulated viewports (Project **P3**).
+- Curate the thermal-2 min/max alarm as a rich alert card, and wire the smart
+  outlets (`irrigation-pump`/`runoff-monitor`) into the fleet + app (Project
+  **P3 Device Curation**).
+- Implement app-owned auth + per-site remote access (Project **P2**), substrate
+  multi-sensor sensing (**P4**, parts-gated), AC Infinity/Pulse bridges (**P5**),
+  and `grow-rules` (**P7**) in later phases.
+- Firmware-update follow-ups (edge publish filters/concurrency; custom ESPHome
+  update install payload support) are tracked in the Project under
+  **Maintenance/CI**.
 
 ## In Scope
 

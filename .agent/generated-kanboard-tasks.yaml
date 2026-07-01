@@ -1,3 +1,6 @@
+# LEGACY / FROZEN (2026-07) — ported to the GitHub Project "Hydro Grow Control"
+# (https://github.com/users/dephekt/projects/2). No longer synced to Kanboard.
+# Kept for history; new work is tracked as GitHub Issues, not here.
 tasks:
   - ref: HGC-001
     title: Improve HMI scanability for 122 discovered entities

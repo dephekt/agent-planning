@@ -28,17 +28,26 @@ and, when enabled, at `<site-slug>.grow.dephekt.net`.
     **Decisions pinned:** 31  ·  **Open forks:** 4  ·  **Deferred / out of scope:** 5
     ·  **Phases sketched:** 8
 
+    **Live roadmap:** task/roadmap tracking now lives in the **GitHub Project —
+    [Hydro Grow Control](https://github.com/users/dephekt/projects/2)** (Issues +
+    Milestones + dependencies across the five repos: grow-app, grow-fleet,
+    esphome-components, media-stack, agent-planning). These briefs remain the
+    durable design reference (the *why*); the Kanboard board is retired.
+
     **Status:** architecture shape revised around self-contained sites. Each
     site owns grow-app, broker, local history, and app-owned login; central
     infrastructure is only routing and identity. Pangolin/Newt remains a
     proxy/tunnel path, while grow-app handles OIDC, local sessions, and local
-    fallback credentials. **Phase 1 is deployed locally:** Daniel's site broker
-    is deployed as the `media-stack/mqtt` Mosquitto stack, ESPHome configs
-    publish under `grow/daniel-home/#`, and `grow-app` is running as the
-    LAN-local `media-stack/grow` site HMI on port `3080`. Site-mode
-    channel-aware firmware updates are shipped through private
-    `stackdrift-firmware` packages and the grow-app Device Settings update
-    panel. Remaining Phase 1 work is HMI polish and real-kiosk ergonomics.
+    fallback credentials. **Phase 1 (site HMI + OTA) and the Phase 3 history
+    layer are shipped and deployed.** Daniel's site broker runs as the
+    `media-stack/mqtt` Mosquitto stack, ESPHome configs publish under
+    `grow/daniel-home/#`, and `grow-app` runs as the LAN-local `media-stack/grow`
+    HMI on port `3080` with the **Mission Control** redesign, per-site **InfluxDB
+    history + `grow-history-recorder`**, **uPlot trends**, **draggable alert
+    thresholds**, guided Atlas calibration, and the thermal camera. The AtomS3U
+    rig now runs the **THERMAL2** driver (buzzer/RGB alarm). Immediate next work:
+    curate the thermal-2 min/max alarm as an alert card and wire the smart
+    outlets, then app-owned auth (Phase 2) and substrate sensing (parts-gated).
     See [Grow app Phase 1](grow-app-phase-1.md).
 
 ------------------------------------------------------------------------
@@ -357,6 +366,9 @@ flowchart TB
 4.  <span class="badge badge-decided">resolved</span> **Central-broker resilience** — resolved by decision 22: there is no central broker in the v1 core architecture. Each site runs its own local broker and history.
 5.  <span class="badge badge-open">open</span> **AC Infinity takeover depth** — front the cloud as-is vs progressively replace its fan/relay role with local ESP control (ties to decision 16).
 6.  <span class="badge badge-open">open</span> **History retention/downsampling** — InfluxDB placement and ingestion are pinned; raw retention windows, downsampling tasks, and chart query limits still need sizing after real data volume is observed.
+7.  <span class="badge badge-open">open</span> **Thermal-2 alarm curation** — the `m5stack_thermal2` min/max temperature-band alarm entities (`thermal_alarm_high/low_threshold`, `thermal_alarm`, `thermal_buzzer_enabled`, `thermal_alarm_test`) are published on the AtomS3U rig but not yet curated as an app alert card: they are absent from the firmware `grow-ui.v1` alerts group, and the app's `threshold-match.ts` only handles the scd4x split high/low shape (thermal is a single band + single alarm state). Tracked as a Project epic (P3 Device Curation).
+8.  <span class="badge badge-open">open</span> **Smart-outlet UI integration** — `irrigation-pump` + `runoff-monitor` ESPHome configs exist but are unwired in `fleet.yaml` (so CI does not build/OTA them) and unintegrated in the app. Register + flash, then decide dashboard-quick-control vs settings placement (P3; maps the irrigation-control brief).
+9.  <span class="badge badge-open">open</span> **Substrate multi-sensor UI** — the app's Substrate panel is a hardcoded single-sensor placeholder. The 4× TEROS-12 probes (parts-gated) need a device contract, firmware, and an app multi-sensor model + probe picker so an operator can choose which probe to view (P4 Substrate).
 
 ## 11. Out of scope (for now)
 
@@ -392,9 +404,12 @@ flowchart TB
   bootstrap admin, local login/logout, per-site OIDC client support, group-based
   site authorization, opt-in local fallback passwords, and Pangolin/Newt routing
   with Pangolin SSO disabled for grow resources.
-- **Phase 3 — local history + Mission Control trends.** Deploy per-site
-  InfluxDB and `grow-history-recorder`; add grow-app server-side history query
-  APIs and chart surfaces. Keep browsers isolated from direct InfluxDB access.
+- **Phase 3 — local history + Mission Control trends.** <span class="badge badge-decided">shipped</span>
+  Per-site InfluxDB + `grow-history-recorder` deployed; grow-app serves a
+  server-mediated history API (`/api/history`) with domain-grouped uPlot trends,
+  and the **Mission Control** redesign (dark instrument panel, curated
+  Updates/Alerts/Calibration, draggable alert thresholds, thermal camera) shipped
+  alongside. Browsers never touch InfluxDB directly. Delivered ahead of Phase 2.
 - **Phase 4 — bridges.** AC Infinity (lift client) + Pulse (rewrite), both
   emitting the ESPHome MQTT shape + discovery.
 - **Phase 5 — Greg's site.** Site hub (local Mosquitto + grow-app + InfluxDB +

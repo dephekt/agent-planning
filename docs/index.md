@@ -8,6 +8,13 @@ The brief is the centerpiece: context, pinned decisions, the shape of the work,
 open forks, and a phased plan. Mirrors the `~/upsun/dephekt/agent-planning`
 docs system.
 
+!!! tip "Grow roadmap → GitHub Project"
+    Live task/roadmap tracking for the grow control system now lives in the
+    **GitHub Project — [Hydro Grow Control](https://github.com/users/dephekt/projects/2)**
+    (Issues + Milestones + dependencies across grow-app, grow-fleet,
+    esphome-components, media-stack, and this repo). These briefs remain the
+    durable design reference; the Kanboard board is retired.
+
 ## Current briefs
 
 <div class="grid cards" markdown>
@@ -20,7 +27,7 @@ docs system.
     autonomous per-site control islands with local history and app-owned auth;
     central infrastructure provides only replaceable remote access and identity.
 
-    Status: **Phase 1 deployed locally + site OTA shipped** · Lead: Daniel
+    Status: **Phase 1 + Phase 3 (history) shipped · Mission Control live** · Lead: Daniel
 
 -   :material-leaf: **[Grow app Phase 1](briefs/grow-app-phase-1.md)**
 
@@ -30,7 +37,7 @@ docs system.
     discovery-derived entities, retained/live state, SSE updates, local command
     mediation, and per-device stable/edge firmware updates.
 
-    Status: **deployed locally + OTA shipped** · Lead: Daniel
+    Status: **deployed · Mission Control + history + OTA shipped** · Lead: Daniel
 
 -   :material-palette: **[Grow app UI redesign workflow](briefs/grow-app-ui-redesign.md)**
 
@@ -40,7 +47,7 @@ docs system.
     instrument-panel dashboard, curated settings panels, local Influx-backed
     history trends, and substrate/Pulse-class sensing roadmap placeholders.
 
-    Status: **Mission Control direction selected** · Lead: Daniel
+    Status: **Mission Control shipped** · Lead: Daniel
 
 </div>
 

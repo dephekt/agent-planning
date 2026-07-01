@@ -1,5 +1,10 @@
 # Agent Kanboard Workflow
 
+> **⚠️ SUPERSEDED (2026-07).** Task tracking moved to the **GitHub Project —
+> Hydro Grow Control** (`https://github.com/users/dephekt/projects/2`). The
+> Kanboard sync flow below is **retired** and retained for history only. Do not
+> run `tools/kb sync`. File and track new work as GitHub Issues on the Project.
+
 ## Discovery
 
 Read this docs repo and the affected source repos. Produce or update

@@ -1,8 +1,19 @@
 # Agent Project Metadata
 
+> **LEGACY (2026-07):** The Kanboard task-state workflow described here is
+> **retired**. Live task/roadmap tracking for the grow control system moved to the
+> **GitHub Project — Hydro Grow Control**
+> (`https://github.com/users/dephekt/projects/2`), with Issues + Milestones +
+> dependencies across the GitHub repos (`dephekt/grow-app`, `grow-fleet`,
+> `esphome-components`, `media-stack`, `agent-planning`). The `.agent/*kanboard*`
+> manifests and `workflow.md` below are frozen for history, not synced. The
+> design briefs under `docs/briefs/` remain the durable design reference.
+
 This repo is the durable planning and task-manifest home for agent-driven work.
-Kanboard owns task state; Codeberg/Forgejo owns source, branches, PRs, review,
-CI, releases, and package artifacts.
+Kanboard *(historically)* owned task state; Codeberg/Forgejo owned source,
+branches, PRs, review, CI, releases, and package artifacts. As of the GitHub
+consolidation, GitHub Projects owns task state and GitHub owns source/CI for the
+grow repos.
 
 ## Shared Kanboard
 
